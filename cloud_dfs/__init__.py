@@ -22,11 +22,11 @@ def create_app():
 
     @app.route('/', methods=['GET'])
     def index():
-        return _helpful_msg_json()
+        return _helpful_msg_json(), 200
 
     @app.route('/help', methods=['GET'])
     def help():
-        return _helpful_msg_json()
+        return _helpful_msg_json(), 200
 
     @app.route('/data', methods=['POST'])
     def put_data():
