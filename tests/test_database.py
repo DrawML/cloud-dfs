@@ -8,7 +8,7 @@ class MyTestCase(unittest.TestCase):
         from cloud_dfs.database import init_db
         from cloud_dfs.database import db_session
         from cloud_dfs.database.models import Data
-        from cloud_dfs.functions import generate_random_token
+        from cloud_dfs.library import generate_random_token
 
         init_db()
 
