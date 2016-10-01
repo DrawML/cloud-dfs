@@ -1,7 +1,7 @@
 import os
 from flask import Flask, g, render_template, request, jsonify, url_for
 import sqlalchemy
-from cloud_dfs.library import generate_random_token
+from cloud_dfs.token import TokenManager, NotAvailableTokenError
 from cloud_dfs.database.models import Data
 from cloud_dfs.file import FileManager
 from cloud_dfs.database import db_session, init_db
@@ -23,6 +23,10 @@ def create_app():
     data_file_root_dir = os.path.dirname(os.sys.modules[__name__].__file__) + '/files'
     print("Data File Root Directory :", data_file_root_dir)
     FileManager(data_file_root_dir)
+
+    data_obj_list = db_session.query(Data).all()
+    allocated_tokens = [data_obj.token for data_obj in data_obj_list]
+    token_manager = TokenManager(allocated_tokens)
 
     @app.errorhandler(404)
     def not_found(error):
@@ -47,19 +51,23 @@ def create_app():
 
         name = json_data['name']
         data = json_data['data']
-        token = generate_random_token()
-        hex_token = token.hex()
-        path = FileManager().store(hex_token, data)
+        token = token_manager.get_avail_token()
+        try:
+            hex_token = token.hex()
 
-        data_obj = Data(name, token, path)
-        db_session.add(data_obj)
-        db_session.commit()
+            path = FileManager().store(hex_token, data)
 
-        print(token)
-        return jsonify({
-            'token': token.hex()
-        }), 201
+            data_obj = Data(name, token, path)
+            db_session.add(data_obj)
+            db_session.commit()
 
+            print(token)
+            return jsonify({
+                'token': token.hex()
+            }), 201
+        except:
+            token_manager.del_token(token)
+            raise
 
     @app.route('/data/<hex_token>', methods=['GET'])
     def get_data(hex_token):
@@ -88,6 +96,8 @@ def create_app():
             db_session.commit()
         except sqlalchemy.orm.exc.NoResultFound:
             return '', 404
+
+        token_manager.del_token(token)
 
         print(data_obj)
 
