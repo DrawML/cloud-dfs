@@ -15,9 +15,7 @@ class FileManager(metaclass=SingletonMeta):
     def __init__(self, root_dir : str):
         if not os.path.isabs(root_dir):
             raise FileValueError('root_dir must be given by absolute directory.')
-        root_dir = os.path.dirname(root_dir + '/')
-        print(root_dir)
-        self._ensure_dir(root_dir + '/')
+        self._ensure_dir(root_dir)
         self._root_dir = root_dir
 
     def _ensure_dir(self, dir):
@@ -26,7 +24,7 @@ class FileManager(metaclass=SingletonMeta):
 
     # exception handling will be added.
     def store(self, filename : str, file_data : str):
-        file_path = self._root_dir + '/' + filename
+        file_path = os.path.join(self._root_dir, filename)
         with open(file_path, 'w') as f:
             f.write(file_data)
         return file_path
