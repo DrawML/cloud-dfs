@@ -52,6 +52,16 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(name, test_name[2])
         self.assertEqual(data, test_data[2])
 
+        try:
+            conn.del_data_file(tokens[0])
+        except NotFoundError:
+            pass
+        else:
+            self.assertEqual(True, False)
+
+        conn.del_data_file(tokens[1])
+        conn.del_data_file(tokens[2])
+
 
 if __name__ == '__main__':
     unittest.main()
