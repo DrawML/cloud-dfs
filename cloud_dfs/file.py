@@ -21,10 +21,16 @@ class FileManager(metaclass=SingletonMeta):
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    def store(self, filename : str, file_data : bytes):
+    def store(self, filename : str, file_data, data_type : str):
         file_path = os.path.join(self._root_dir, filename)
         try:
-            with open(file_path, 'wb') as f:
+            if data_type == 'binary':
+                mode = 'wb'
+            elif data_type == 'text':
+                mode = 'wt'
+            else:
+                raise ParamError('{0} is invalid data_type.'.format(data_type))
+            with open(file_path, mode) as f:
                 f.write(file_data)
         except OSError:
             raise ParamError('can\'t access to given file("{0}")'.format(file_path))

@@ -15,8 +15,10 @@ class MyTestCase(unittest.TestCase):
         allocated_tokens = [data_obj.token for data_obj in data_obj_list]
         token_manager = TokenManager(allocated_tokens)
 
-        data = Data('test_data', token_manager.get_avail_token(), 'test_path')
+        data = Data('test_data', token_manager.get_avail_token(), 'test_path', 'text')
         db_session.add(data)
+        db_session.commit()
+        db_session.query(Data).filter(Data.token == data.token).delete()
         db_session.commit()
 
 

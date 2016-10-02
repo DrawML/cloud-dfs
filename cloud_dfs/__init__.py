@@ -46,16 +46,28 @@ def create_app():
 
     @app.route('/data', methods=['POST'])
     def put_data():
-        data_file = request.files['data']
-        name = data_file.filename
-        data = data_file.read()  # will be modified.
+        content_type = request.headers.get('Content-Type')
+        if 'application/json' in content_type:
+            json_data = request.get_json()
+            name = json_data['name']
+            data = json_data['data']
+            data_type = 'text'
+        elif 'multipart/form-data' in content_type:
+            data_file = request.files['data']
+            name = data_file.filename
+            data = data_file.read()  # will be modified.
+            data_type = 'binary'
+        else:
+            print('Invalid Content-Type:', content_type)
+            return 'invalid content-type', 400
+
         token = token_manager.get_avail_token()
         try:
             hex_token = token.hex()
 
-            path = FileManager().store(hex_token, data)
+            path = FileManager().store(hex_token, data, data_type)
 
-            data_obj = Data(name, token, path)
+            data_obj = Data(name, token, path, data_type)
             db_session.add(data_obj)
             db_session.commit()
 
@@ -77,7 +89,18 @@ def create_app():
 
         print(data_obj)
 
-        return send_file(data_obj.path, mimetype='application/octet-stream'), 200
+        if data_obj.data_type == 'binary':
+            return send_file(data_obj.path, mimetype='application/octet-stream',
+                             as_attachment=True, attachment_filename=data_obj.name), 200
+        elif data_obj.data_type == 'text':
+            with open(data_obj.path, 'r') as f:
+                data = f.read()
+            return jsonify({
+                'name': data_obj.name,
+                'data': data
+            }), 200
+        else:
+            return '', 500
 
     @app.route('/data/<hex_token>', methods=['DELETE'])
     def del_data(hex_token):

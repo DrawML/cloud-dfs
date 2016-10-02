@@ -15,22 +15,27 @@ class MyTestCase(unittest.TestCase):
             'Test File #1', 'Test File #2', 'Test File #3'
         ]
         test_data = [
-            b'Test Data #1', b'Test Data #2', b'Test Data #3'
+            b'Test Data #1', 'Test Data #2', b'Test Data #3'
+        ]
+        test_data_type = [
+            'binary', 'text', 'binary'
         ]
         tokens = []
 
-        token = conn.put_data_file(test_name[0], test_data[0])
+        token = conn.put_data_file(test_name[0], test_data[0], test_data_type[0])
         tokens.append(token)
         print(token)
 
-        token = conn.put_data_file(test_name[1], test_data[1])
+        token = conn.put_data_file(test_name[1], test_data[1], test_data_type[1])
         tokens.append(token)
         print(token)
 
-        data = conn.get_data_file(tokens[0])
+        name, data = conn.get_data_file(tokens[0])
+        self.assertEqual(name, test_name[0])
         self.assertEqual(data, test_data[0])
 
-        data = conn.get_data_file(tokens[1])
+        name, data = conn.get_data_file(tokens[1])
+        self.assertEqual(name, test_name[1])
         self.assertEqual(data, test_data[1])
 
         conn.del_data_file(tokens[0])
@@ -42,11 +47,12 @@ class MyTestCase(unittest.TestCase):
         else:
             self.assertEqual(True, False)
 
-        token = conn.put_data_file(test_name[2], test_data[2])
+        token = conn.put_data_file(test_name[2], test_data[2], test_data_type[2])
         tokens.append(token)
         print(token)
 
-        data = conn.get_data_file(tokens[2])
+        name, data = conn.get_data_file(tokens[2])
+        self.assertEqual(name, test_name[2])
         self.assertEqual(data, test_data[2])
 
         try:
