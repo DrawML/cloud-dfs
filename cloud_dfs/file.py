@@ -1,20 +1,19 @@
 import os
-from cloud_dfs.library import AutoIncrementEnum, SingletonMeta
+from cloud_dfs.library import SingletonMeta
 
 
-class FileValueError(ValueError):
-    def __init__(self, msg=''):
-        self._msg = msg
+class Error(Exception):
+    pass
 
-    def __str__(self):
-        return "FileValueError : %s" % self._msg
+class ParamError(Error):
+    pass
 
 
 class FileManager(metaclass=SingletonMeta):
 
     def __init__(self, root_dir : str):
         if not os.path.isabs(root_dir):
-            raise FileValueError('root_dir must be given by absolute directory.')
+            raise ParamError('root_dir must be given by absolute directory.')
         self._ensure_dir(root_dir)
         self._root_dir = root_dir
 
@@ -22,15 +21,17 @@ class FileManager(metaclass=SingletonMeta):
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    # exception handling will be added.
     def store(self, filename : str, file_data : str):
         file_path = os.path.join(self._root_dir, filename)
-        with open(file_path, 'w') as f:
-            f.write(file_data)
+        try:
+            with open(file_path, 'w') as f:
+                f.write(file_data)
+        except OSError:
+            raise ParamError('can\'t access to given file("{0}")'.format(file_path))
         return file_path
 
     def remove(self, file_path):
         try:
             os.remove(file_path)
-        except Exception as e:
-            raise FileValueError('invalid file_path. ' + str(e))
+        except FileNotFoundError as e:
+            raise ParamError('invalid file_path. ' + str(e))
