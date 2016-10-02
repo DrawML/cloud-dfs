@@ -1,5 +1,5 @@
 import os
-from flask import Flask, g, render_template, request, jsonify, url_for
+from flask import Flask, g, render_template, request, jsonify, url_for, send_file
 import sqlalchemy
 from cloud_dfs.token import TokenManager, NotAvailableTokenError
 from cloud_dfs.database.models import Data
@@ -46,11 +46,9 @@ def create_app():
 
     @app.route('/data', methods=['POST'])
     def put_data():
-        json_data = request.get_json(force=True)
-        print(json_data)
-
-        name = json_data['name']
-        data = json_data['data']
+        data_file = request.files['data']
+        name = data_file.filename
+        data = data_file.read()  # will be modified.
         token = token_manager.get_avail_token()
         try:
             hex_token = token.hex()
@@ -79,13 +77,7 @@ def create_app():
 
         print(data_obj)
 
-        with open(data_obj.path, 'r') as f:
-            data = f.read()
-
-        return jsonify({
-            'name': data_obj.name,
-            'data': data
-        }), 200
+        return send_file(data_obj.path, mimetype='application/octet-stream'), 200
 
     @app.route('/data/<hex_token>', methods=['DELETE'])
     def del_data(hex_token):

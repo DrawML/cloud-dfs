@@ -15,7 +15,7 @@ class MyTestCase(unittest.TestCase):
             'Test File #1', 'Test File #2', 'Test File #3'
         ]
         test_data = [
-            'Test Data #1', 'Test Data #2', 'Test Data #3'
+            b'Test Data #1', b'Test Data #2', b'Test Data #3'
         ]
         tokens = []
 
@@ -27,12 +27,10 @@ class MyTestCase(unittest.TestCase):
         tokens.append(token)
         print(token)
 
-        name, data = conn.get_data_file(tokens[0])
-        self.assertEqual(name, test_name[0])
+        data = conn.get_data_file(tokens[0])
         self.assertEqual(data, test_data[0])
 
-        name, data = conn.get_data_file(tokens[1])
-        self.assertEqual(name, test_name[1])
+        data = conn.get_data_file(tokens[1])
         self.assertEqual(data, test_data[1])
 
         conn.del_data_file(tokens[0])
@@ -48,8 +46,7 @@ class MyTestCase(unittest.TestCase):
         tokens.append(token)
         print(token)
 
-        name, data = conn.get_data_file(tokens[2])
-        self.assertEqual(name, test_name[2])
+        data = conn.get_data_file(tokens[2])
         self.assertEqual(data, test_data[2])
 
         try:

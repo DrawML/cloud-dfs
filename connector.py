@@ -33,12 +33,11 @@ class CloudDFSConnector(object):
 
         return r.json()
 
-    def put_data_file(self, name : str, data : str):
+    def put_data_file(self, name : str, data : bytes):
         url = self._url + '/data'
         print("Connected URL :", url)
-        r = requests.post(url, json={
-            'name': name,
-            'data': data
+        r = requests.post(url, files={
+            'data': (name, data)
         })
 
         if r.status_code == 201:
@@ -51,7 +50,7 @@ class CloudDFSConnector(object):
         result = r.json()
         return result['token']
 
-    def get_data_file(self, token : str):
+    def get_data_file(self, token : str) -> bytes:
         url = self._url + '/data/' + token
         print("Connected URL :", url)
         r = requests.get(url)
@@ -63,8 +62,7 @@ class CloudDFSConnector(object):
         else:
             raise UnknownError('Unknown error code of requests. HTTP Status Code : {0}'.format(r.status_code))
 
-        result = r.json()
-        return result['name'], result['data']
+        return r.content
 
     def del_data_file(self, token : str):
         url = self._url + '/data/' + token
