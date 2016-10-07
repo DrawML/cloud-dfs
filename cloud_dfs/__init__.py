@@ -75,7 +75,7 @@ def create_app():
             return jsonify({
                 'token': token.hex()
             }), 201
-        except:
+        except Exception:
             token_manager.del_token(token)
             raise
 
@@ -119,5 +119,14 @@ def create_app():
         FileManager().remove(data_obj.path)
 
         return '', 204
+
+    @app.teardown_appcontext
+    def shutdown_session(response_or_exc):
+        try:
+            if response_or_exc is None:
+                db_session.commit()
+        finally:
+            db_session.remove()
+        return response_or_exc
 
     return app
