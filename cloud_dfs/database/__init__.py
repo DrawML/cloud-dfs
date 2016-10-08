@@ -5,7 +5,7 @@ from cloud_dfs.database.db_config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 
 
 engine = create_engine('mysql+pymysql://{0}:{1}@{2}/{3}'.format(DB_USER, DB_PASSWORD, DB_HOST, DB_NAME),
-                       convert_unicode=True,  pool_recycle=1800)
+                       convert_unicode=True,  pool_recycle=4)
 db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False))
 
 Base = declarative_base()
