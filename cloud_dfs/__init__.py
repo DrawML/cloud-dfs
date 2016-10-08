@@ -121,6 +121,8 @@ def create_app():
                 try:
                     data_group = db_session.query(DataGroup).filter(DataGroup.token == data_group_token).one()
                 except sqlalchemy.orm.exc.NoResultFound:
+                    # TODO: Bad Code.. must be modified.
+                    token_manager.del_token(token)
                     return '', 404
 
             path = FileManager().store(hex_token, data)
@@ -133,8 +135,9 @@ def create_app():
             return jsonify({
                 'token': token.hex()
             }), 201
-        finally:
+        except:
             token_manager.del_token(token)
+            raise
 
     @app.route('/data/<hex_token>', methods=['GET'])
     def get_data(hex_token):
@@ -168,7 +171,6 @@ def create_app():
             db_session.commit()
         except sqlalchemy.orm.exc.NoResultFound:
             return '', 404
-
         token_manager.del_token(token)
 
         print("Deleted Data :", data_obj)
