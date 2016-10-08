@@ -118,7 +118,10 @@ def create_app():
                 data_group = None
             else:
                 data_group_token = bytes.fromhex(data_group_hex_token)
-                data_group = db_session.query(DataGroup).filter(DataGroup.token == data_group_token).one()
+                try:
+                    data_group = db_session.query(DataGroup).filter(DataGroup.token == data_group_token).one()
+                except sqlalchemy.orm.exc.NoResultFound:
+                    return '', 404
 
             path = FileManager().store(hex_token, data, data_type)
 
@@ -130,9 +133,8 @@ def create_app():
             return jsonify({
                 'token': token.hex()
             }), 201
-        except Exception:
+        finally:
             token_manager.del_token(token)
-            raise
 
     @app.route('/data/<hex_token>', methods=['GET'])
     def get_data(hex_token):
