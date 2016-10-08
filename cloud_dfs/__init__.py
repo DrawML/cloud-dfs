@@ -2,7 +2,7 @@ import os
 from flask import Flask, g, render_template, request, jsonify, url_for, send_file
 import sqlalchemy
 from cloud_dfs.token import TokenManager, NotAvailableTokenError
-from cloud_dfs.database.models import Data
+from cloud_dfs.database.models import Data, DataGroup
 from cloud_dfs.file import FileManager
 from cloud_dfs.database import db_session, init_db
 
@@ -44,6 +44,53 @@ def create_app():
     def help():
         return _helpful_msg_json(), 200
 
+    @app.route('/group', methods=['POST'])
+    def create_group():
+        json_data = request.get_json()
+        name = json_data['name']
+
+        token = token_manager.get_avail_token()
+        try:
+            data_group = DataGroup(name, token)
+            db_session.add(data_group)
+            db_session.commit()
+
+            print("Created Data Group :", data_group)
+            return jsonify({
+                'token': token.hex()
+            }), 201
+        except Exception:
+            token_manager.del_token(token)
+            raise
+
+    @app.route('/group/<hex_token>', methods=['GET'])
+    def get_group_info(hex_token):
+        token = bytes.fromhex(hex_token)
+        try:
+            data_group = db_session.query(DataGroup).filter(DataGroup.token == token).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return '', 404
+
+        print("Got Data Group :", data_group)
+        return jsonify({
+            'name': data_group.name,
+            'data_token_list': [data.token.hex() for data in data_group.data_list]
+        }), 200
+
+    @app.route('/group/<hex_token>', methods=['DELETE'])
+    def remove_group(hex_token):
+        token = bytes.fromhex(hex_token)
+        try:
+            data_group = db_session.query(DataGroup).filter(DataGroup.token == token).one()
+            db_session.delete(data_group)
+            db_session.commit()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return '', 404
+
+        print("Removed Data Group :", data_group)
+        token_manager.del_token(token)
+        return '', 204
+
     @app.route('/data', methods=['POST'])
     def put_data():
         content_type = request.headers.get('Content-Type')
@@ -51,11 +98,13 @@ def create_app():
             json_data = request.get_json()
             name = json_data['name']
             data = json_data['data']
+            data_group_hex_token = json_data.get('group_token', None)
             data_type = 'text'
         elif 'multipart/form-data' in content_type:
             data_file = request.files['data']
             name = data_file.filename
             data = data_file.read()  # will be modified.
+            data_group_hex_token = request.form.get('group_token', None)
             data_type = 'binary'
         else:
             print('Invalid Content-Type:', content_type)
@@ -65,13 +114,19 @@ def create_app():
         try:
             hex_token = token.hex()
 
+            if data_group_hex_token is None:
+                data_group = None
+            else:
+                data_group_token = bytes.fromhex(data_group_hex_token)
+                data_group = db_session.query(DataGroup).filter(DataGroup.token == data_group_token).one()
+
             path = FileManager().store(hex_token, data, data_type)
 
-            data_obj = Data(name, token, path, data_type)
+            data_obj = Data(name, token, path, data_type, data_group)
             db_session.add(data_obj)
             db_session.commit()
 
-            print(token)
+            print("Putted Data :", data_obj)
             return jsonify({
                 'token': token.hex()
             }), 201
@@ -87,13 +142,13 @@ def create_app():
         except sqlalchemy.orm.exc.NoResultFound:
             return '', 404
 
-        print(data_obj)
+        print("Got Data :", data_obj)
 
         if data_obj.data_type == 'binary':
             return send_file(data_obj.path, mimetype='application/octet-stream',
                              as_attachment=True, attachment_filename=data_obj.name), 200
         elif data_obj.data_type == 'text':
-            with open(data_obj.path, 'r') as f:
+            with open(data_obj.path, 'rt') as f:
                 data = f.read()
             return jsonify({
                 'name': data_obj.name,
@@ -107,19 +162,24 @@ def create_app():
         token = bytes.fromhex(hex_token)
         try:
             data_obj = db_session.query(Data).filter(Data.token == token).one()
-            db_session.query(Data).filter(Data.token == token).delete()
+            db_session.delete(data_obj)
             db_session.commit()
         except sqlalchemy.orm.exc.NoResultFound:
             return '', 404
 
         token_manager.del_token(token)
 
-        print(data_obj)
+        print("Deleted Data :", data_obj)
 
         FileManager().remove(data_obj.path)
 
         return '', 204
 
+    @app.teardown_request
+    def shutdown_session(exception=None):
+        db_session.remove()
+
+    """
     @app.teardown_appcontext
     def shutdown_session(response_or_exc):
         try:
@@ -128,5 +188,6 @@ def create_app():
         finally:
             db_session.remove()
         return response_or_exc
+    """
 
     return app
