@@ -25,6 +25,11 @@ class CloudDFSConnector(object):
         self._port = port
         self._url = 'http://{0}:{1}'.format(ip, port)
 
+
+    """
+    Basic Connector Functions below.
+    """
+
     def help(self):
         url = self._url + '/help'
         print("Connected URL :", url)
@@ -38,7 +43,7 @@ class CloudDFSConnector(object):
         return r.json()
 
     def create_data_group(self, group_name : str) -> str:
-        """Create data group in Cloud DFS
+        """Create data group.
 
         :param group_name: group name :str
         :return: a token of group :str
@@ -59,7 +64,7 @@ class CloudDFSConnector(object):
         return result['token']
 
     def get_data_group_info(self, group_token : str) -> dict:
-        """Get a information of data group in Cloud DFS.
+        """Get a information of data group.
 
         :param group_token: a token of group :str
         :return: a dictionary for the information :dict
@@ -102,22 +107,23 @@ class CloudDFSConnector(object):
         else:
             raise UnknownError('Unknown error code of requests. HTTP Status Code : {0}'.format(r.status_code))
 
-    def put_data_file(self, name : str, data, data_type : str, group_token : str = None) -> str:
-        """Put data file in Cloud DFS
+    def put_data_file(self, name : str, data, group_token : str = None) -> str:
+        """Put data file.
 
         :param name: file name :str
         :param data: file data :str or bytes
-        :param data_type: data type :str ('text' or 'binary')
         :param group_token: group token :str
         :return: a token of file :str
+
+        *** Be cautious to removal of data_type!!
         """
-        if data_type != 'binary' and data_type != 'text':
-            raise ParamError('Invalid data_type.')
+        if type(data) is not bytes and type(data) is not str:
+            raise ParamError('Invalid type of data. (only supported to \'str\' or \'bytes\'')
 
         url = self._url + '/data'
         print("Connected URL :", url)
 
-        if data_type == 'binary':
+        if type(data) is bytes:
             if group_token is None:
                 form_data = None
             else:
@@ -138,6 +144,8 @@ class CloudDFSConnector(object):
 
         if r.status_code == 201:
             pass
+        elif r.status_code == 404:
+            raise NotFoundError('There is no data group which has given token.')
         elif r.status_code == 422:
             raise UnprocessableError('A server cannot create a data file.')
         else:
@@ -147,10 +155,10 @@ class CloudDFSConnector(object):
         return result['token']
 
     def get_data_file(self, token : str):
-        """Get data file in Cloud DFS
+        """Get data file.
 
         :param token: a token of file :str
-        :return: (file name, file data) :tuple
+        :return: (file_name, file_data) :tuple
         """
         url = self._url + '/data/' + token
         print("Connected URL :", url)
@@ -175,7 +183,7 @@ class CloudDFSConnector(object):
             raise UnknownError('Server reply invalid http message.')
 
     def del_data_file(self, token : str):
-        """Delete data file in Cloud DFS
+        """Delete data file.
 
         :param token: a token for data file :str
         :return: None
@@ -190,3 +198,66 @@ class CloudDFSConnector(object):
             raise NotFoundError('There is no data file which has given token.')
         else:
             raise UnknownError('Unknown error code of requests. HTTP Status Code : {0}'.format(r.status_code))
+
+
+    """
+    Advanced and Capsuled Functions Below.
+    """
+
+    def get_data_files_in_group(self, group_token: str) -> list:
+        """ Get all data files in specific group.
+
+        :param group_token: a token for data group.
+        :return: a list of data files :list
+            example) [
+                (file_name_1, file_data_1), (file_name_2, file_data_2),
+                ..., (file_name_N, file_data_N)
+            ]
+        """
+        group_info = self.get_data_group_info(group_token)
+        data_files = []
+        for data_token in group_info['data_token_list']:
+            data_files.append(self.get_data_file(data_token))
+
+        return data_files
+
+    def put_data_files_in_group(self, group_token: str, data_files: list) -> list:
+        """ Put given data files in specific group.
+
+        :param group_token: a token for data group. :str
+        :param data_files: a list of data files. :list
+            example) [
+                (file_name_1, file_data_1), (file_name_2, file_data_2),
+                ..., (file_name_N, file_data_N)
+            ]
+        :return: a list of tokens to data files :list
+            example) [
+                token_1, token_2, ..., token_N
+            ]
+        """
+        # For checking data group exists.
+        _ = self.get_data_group_info(group_token)
+
+        data_file_tokens = []
+        try:
+            for file_name, file_data in data_files:
+                data_file_tokens.append(self.put_data_file(file_name, file_data, group_token))
+        except NotFoundError:
+            raise
+        except:
+            for data_file_token in data_file_tokens:
+                self.del_data_file(data_file_token)
+            raise
+
+        return data_file_tokens
+
+    def put_data_files_with_creating_group(self, group_name :str, *args, **kwargs):
+        """Create a data group. And put data files in that group.
+
+        :param group_name: a name of data group :str
+        :return: a group token and data files :tuple (group_token, a list of tokens to data files)
+        For more details,
+            SEE "create_data_group" and "put_data_files_in_group".
+        """
+        group_token = self.create_data_group(group_name)
+        return group_token, self.put_data_files_in_group(group_token, *args, **kwargs)
