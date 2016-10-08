@@ -103,7 +103,7 @@ def create_app():
         elif 'multipart/form-data' in content_type:
             data_file = request.files['data']
             name = data_file.filename
-            data = data_file.read()  # will be modified.
+            data = data_file.read()  # TODO: will be modified.
             data_group_hex_token = request.form.get('group_token', None)
             data_type = 'binary'
         else:
@@ -123,7 +123,7 @@ def create_app():
                 except sqlalchemy.orm.exc.NoResultFound:
                     return '', 404
 
-            path = FileManager().store(hex_token, data, data_type)
+            path = FileManager().store(hex_token, data)
 
             data_obj = Data(name, token, path, data_type, data_group)
             db_session.add(data_obj)
