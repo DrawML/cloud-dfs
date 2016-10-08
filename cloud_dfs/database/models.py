@@ -46,5 +46,5 @@ class Data(Base):
         self.data_group = data_group
 
     def __repr__(self):
-        return 'Data(name={0}, token={1}, path={2}, data_type={3}, data_group={4})'.format(
-            self.name, self.token, self.path, self.data_type, self.data_group.id)
+        return 'Data(name={0}, token={1}, path={2}, data_type={3}, data_group.id={4})'.format(
+            self.name, self.token, self.path, self.data_type, self.data_group.id if self.data_group else None)
