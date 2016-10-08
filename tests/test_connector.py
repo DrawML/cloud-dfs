@@ -142,15 +142,6 @@ class MyTestCase(unittest.TestCase):
             else:
                 self.assertTrue(False)
 
-        try:
-            conn.put_data_file(file_names[0], file_data[0], 'invalid_group_token')
-        except NotFoundError:
-            pass
-        except:
-            self.assertTrue(False)
-        else:
-            self.assertTrue(False)
-
         group_tokens.append(conn.create_data_group(group_names[0]))
         group_tokens.append(conn.create_data_group(group_names[1]))
 
@@ -181,6 +172,15 @@ class MyTestCase(unittest.TestCase):
 
         conn.remove_data_group(group_tokens[0])
         check_data_group_remove(0)
+
+        try:
+            conn.put_data_file(file_names[3], file_data[3], group_tokens[0])
+        except NotFoundError:
+            pass
+        except:
+            self.assertTrue(False)
+        else:
+            self.assertTrue(False)
 
     def test_advanced(self):
         """Test advanced features
