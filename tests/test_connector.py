@@ -218,6 +218,8 @@ class MyTestCase(unittest.TestCase):
         got_data_files = conn.get_data_files_in_group(group_token)
         self.assertEqual(data_files + data_files, got_data_files)
 
+        conn.remove_data_group(group_token)
+
 
 
 if __name__ == '__main__':
