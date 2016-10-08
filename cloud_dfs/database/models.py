@@ -17,8 +17,8 @@ class DataGroup(Base):
         self.token = token
 
     def __repr__(self):
-        return 'DataGroup(name={0}, token={1})'.format(
-            self.name, self.token)
+        return 'DataGroup(name={0}, token={1}, len of data_list={2})'.format(
+            self.name, self.token, len(self.data_list))
 
 
 class Data(Base):
@@ -46,5 +46,5 @@ class Data(Base):
         self.data_group = data_group
 
     def __repr__(self):
-        return 'Data(name={0}, token={1}, path={2}, data_type={3})'.format(
-            self.name, self.token, self.path, self.data_type)
+        return 'Data(name={0}, token={1}, path={2}, data_type={3}, data_group={4})'.format(
+            self.name, self.token, self.path, self.data_type, self.data_group.id)
