@@ -1,5 +1,5 @@
 import os
-from flask import Flask, g, render_template, request, jsonify, url_for, send_file
+from flask import Flask, g, render_template, request, jsonify, url_for, send_file, Response, make_response
 import sqlalchemy
 from cloud_dfs.token import TokenManager, NotAvailableTokenError
 from cloud_dfs.database.models import Data, DataGroup
@@ -150,17 +150,22 @@ def create_app():
         print("Got Data :", data_obj)
 
         if data_obj.data_type == 'binary':
-            return send_file(data_obj.path, mimetype='application/octet-stream',
-                             as_attachment=True, attachment_filename=data_obj.name), 200
+            response = make_response(send_file(data_obj.path, mimetype='application/octet-stream',
+                             as_attachment=True, attachment_filename=data_obj.name))
         elif data_obj.data_type == 'text':
             with open(data_obj.path, 'rt') as f:
                 data = f.read()
-            return jsonify({
+
+            response = make_response(jsonify({
                 'name': data_obj.name,
                 'data': data
-            }), 200
+            }))
         else:
             return '', 500
+
+        response.status_code = 200
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
 
     @app.route('/data/<hex_token>', methods=['DELETE'])
     def del_data(hex_token):
